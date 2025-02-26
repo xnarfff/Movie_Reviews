@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jiburi Jiburi - Movies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">Jiburi Jiburi</div>
+        <div class="profile-container">
+            <img src="{{ url_for('static', filename='images/profile-icon.png') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
+            <div class="dropdown-menu" id="dropdown-menu">
+                <button onclick="logout()" style="color: red;">Log Out</button>
+            </div>
+        </div>
+    </header>
+    <h1>Movies List</h1>
+    <ul id="movies-list"></ul>
+    <script>
+        function toggleDropdown() {
+            const dropdown = document.getElementById("dropdown-menu");
+            dropdown.classList.toggle("show");
+        }
+
+        function logout() {
+            localStorage.removeItem("token"); 
+            window.location.href = "{{ url_for('login_page') }}"; 
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.profile-icon')) {
+                const dropdown = document.getElementById("dropdown-menu");
+                if (dropdown.classList.contains("show")) {
+                    dropdown.classList.remove("show");
+                }
+            }
+        };
+
+        async function fetchMovies() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert("You are not logged in!");
+                window.location.href = "{{ url_for('login_page') }}";
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/movies', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const movies = await response.json();
+                console.log("Movies Data:", movies);
+
+                const moviesList = document.getElementById('movies-list');
+                moviesList.innerHTML = ''; 
+                movies.forEach(movie => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <img src="${movie.image_url}" alt="${movie.title}" width="150">
+                        <p><strong>${movie.title} (${movie.year})</strong></p>
+                        <p>Genre: ${movie.genre}</p>
+                        <p class="description">${movie.description}</p>
+                    `;
+
+                    li.onclick = function () {
+                        window.location.href = "{{ url_for('review_page') }}?movie_id=" + encodeURIComponent(movie.id);
+                    };
+
+                    moviesList.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                alert("Server error. Make sure Flask is running.");
+            }
+        }
+
+        fetchMovies();
+    </script>
+
+</body>
+</html>
